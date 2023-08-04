@@ -13,47 +13,56 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000, // 2 segundos de espera
 });
 
-async function main(){
-   try{
-    const conexion = await pool.connect();
-    console.log("Conexion correcta");
-
+async function leer(conexion, id){
     let consulta ={
         text:"select  *  from usuarios where id=$1",
-        values:[2],
+        values:[id],
         //rowMode:"array"
     }
 
     let resultado = await conexion.query(consulta);
     console.log(resultado.rows);
 
-    consulta ={
+    conexion.release
+}
+
+async function modificarRetorno(conexion, valor, id){
+    let consulta ={
+        text:"update usuarios set apellido = $1 where id = $2  RETURNING *",
+        values:[valor,id],
+        //rowMode:"array"
+    }
+
+    let resultado = await conexion.query(consulta);
+    console.log(resultado.rows);
+
+    conexion.release
+}
+
+async function modificar(conexion, valor, id){
+    let consulta ={
         text:"update usuarios set apellido = $1 where id = $2",
-        values:['Solar',2],
+        values:[valor,id],
         //rowMode:"array"
     }
     await conexion.query(consulta);
+    conexion.release
+}
 
-    consulta ={
-        text:"select  *  from usuarios where id=$1",
-        values:[2],
-        //rowMode:"array"
-    }
+async function main(){
+   try{
+    const conexion = await pool.connect();
+    console.log("Conexion correcta");
 
-    resultado = await conexion.query(consulta);
-    console.log(resultado.rows);
+    await leer(conexion, 2);
+    await modificar(conexion, 'Lopez',2); // modificación simple
+    await leer(conexion, 2);
+    await modificarRetorno(conexion, 'America',2); //modificación con retorno
 
-
-    consulta ={
-        text:"update usuarios set apellido = $1 where id = $2 RETURNING id",
-        values:['Lopez',2],
-        //rowMode:"array"
-    }
-    resultado = await conexion.query(consulta);
-    console.log(resultado.rows)
+    await conexion.end(()=>{console.log("cerrado")})
 
    }catch(err){
-    console.log('Error al conectar a base de datos');
+    console.log(err);
    }
 
 } 
